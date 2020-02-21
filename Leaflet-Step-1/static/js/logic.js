@@ -1,21 +1,40 @@
 // URL to earthquake json data
 var queryUrl = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson";
 
-var quakeMarkers = []
-
-// Function to determine marker size based on magnitude
+// function to determine marker size based on magnitude
 function markerSize(magnitude) {
     return magnitude * 5;
 }
 
-// function to return the color
+// function to return the color based on magnitude
 function markerColor(magnitude) {
-  if (magnitude > 8) {
+  if (magnitude > 4) {
     return 'red'
-  } else if (magnitude > 4) {
+  } else if (magnitude > 3) {
+    return 'orange'
+  } else if (magnitude > 2) {
     return 'yellow'
   } else {
     return 'green'
+  }
+}
+
+// function for opacity based on magnitude
+function markerOpacity(magnitude) {
+  if (magnitude > 6) {
+    return .99
+  } else if (magnitude > 5) {
+    return .80
+  } else if (magnitude > 4) {
+    return .70
+  } else if (magnitude > 3) {
+    return .60
+  } else if (magnitude > 2) {
+    return .50
+  } else if (magnitude > 1) {
+    return .40
+  } else {
+    return .30
   }
 }
 
@@ -27,31 +46,15 @@ d3.json(queryUrl, function(data) {
     pointToLayer: addMarker
   });
 
-//   console.log(data.features[0])
-
-  data.features.forEach(function(location) {
-
-    // console.log(location.geometry.coordinates)
-    quakeMarkers.push(
-        L.circle(location.geometry.coordinates, {
-            stroke: false,
-            fillOpacity: 0.75,
-            color: markerColor(location.properties.mag),
-            fillColor: markerColor(location.properties.mag),
-            radius: markerSize(location.properties.mag)
-        })
-    )
-
-  })
-
-  createMap(earthquakes, quakeMarkers);
+// call function to create map
+  createMap(earthquakes);
 
 });
 
 function addMarker(feature, location) {
   var options = {
     stroke: false,
-    fillOpacity: 0.75,
+    fillOpacity: markerOpacity(feature.properties.mag),
     color: markerColor(feature.properties.mag),
     fillColor: markerColor(feature.properties.mag),
     radius: markerSize(feature.properties.mag)
@@ -68,7 +71,7 @@ function addPopup(feature, layer) {
 }
 
 // function to receive a layer of markers and plot them on a map.
-function createMap(earthquakes, quakeMarkers) {
+function createMap(earthquakes) {
 
     // Define streetmap and darkmap layers
     var streetmap = L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
@@ -89,14 +92,9 @@ function createMap(earthquakes, quakeMarkers) {
       "Dark Map": darkmap
     };
   
-    var quakes = L.layerGroup(quakeMarkers);
-
-    console.log(quakes)
-
     // Create overlay object to hold our overlay layer
     var overlayMaps = {
-      Earthquakes: earthquakes,
-      Magnitude: quakes
+      Earthquakes: earthquakes
     };
   
     // Create our map, giving it the streetmap and earthquakes layers to display on load
@@ -106,6 +104,21 @@ function createMap(earthquakes, quakeMarkers) {
       layers: [streetmap, earthquakes]
     });
   
+    // creating the legend
+    var legend = L.control({position: 'bottomright'});
+
+    // add legend to map
+    legend.onAdd = function () {
+    
+        var div = L.DomUtil.create('div', 'info legend')
+        
+        div.innerHTML = "<h3>Magnitude Legend</h3><table><tr><th>>= 4</th><td>Red</td></tr><tr><th>>= 3</th><td>Orange</td></tr><tr><th>>= 2</th><td>Yellow</td></tr><tr><th>< 2</th><td>Green</td></tr></table>";
+
+        return div;
+    };
+    
+    legend.addTo(myMap);
+
     // Create a layer control
     // Pass in our baseMaps and overlayMaps
     // Add the layer control to the map

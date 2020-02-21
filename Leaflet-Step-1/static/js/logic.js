@@ -5,15 +5,26 @@ var quakeMarkers = []
 
 // Function to determine marker size based on magnitude
 function markerSize(magnitude) {
-    return magnitude * 10;
+    return magnitude * 5;
+}
+
+// function to return the color
+function markerColor(magnitude) {
+  if (magnitude > 8) {
+    return 'red'
+  } else if (magnitude > 4) {
+    return 'yellow'
+  } else {
+    return 'green'
+  }
 }
 
 // GET request, and function to handle returned JSON data
 d3.json(queryUrl, function(data) {
-  // Once we get a response, create a geoJSON layer containing the features array and add a popup for each marker
-  // then, send the layer to the createMap() function.
+  
   var earthquakes = L.geoJSON(data.features, {
-    onEachFeature : addPopup
+    onEachFeature : addPopup,
+    pointToLayer: addMarker
   });
 
 //   console.log(data.features[0])
@@ -25,25 +36,39 @@ d3.json(queryUrl, function(data) {
         L.circle(location.geometry.coordinates, {
             stroke: false,
             fillOpacity: 0.75,
-            color: 'white',
-            fillColor: 'white',
-            radius: location.properties.mag
+            color: markerColor(location.properties.mag),
+            fillColor: markerColor(location.properties.mag),
+            radius: markerSize(location.properties.mag)
         })
     )
 
   })
 
   createMap(earthquakes, quakeMarkers);
+
 });
+
+function addMarker(feature, location) {
+  var options = {
+    stroke: false,
+    fillOpacity: 0.75,
+    color: markerColor(feature.properties.mag),
+    fillColor: markerColor(feature.properties.mag),
+    radius: markerSize(feature.properties.mag)
+  }
+
+  return L.circleMarker(location, options);
+
+}
 
 // Define a function we want to run once for each feature in the features array
 function addPopup(feature, layer) {
     // Give each feature a popup describing the place and time of the earthquake
-    return layer.bindPopup(`<h3> ${feature.properties.place} </h3> <hr> <p> ${Date(feature.properties.time)} </p>`);
+    return layer.bindPopup(`<h3> ${feature.properties.place} </h3> <hr> <h4>Magnitude: ${feature.properties.mag} </h4> <p> ${Date(feature.properties.time)} </p>`);
 }
 
 // function to receive a layer of markers and plot them on a map.
-function createMap(earthquakes) {
+function createMap(earthquakes, quakeMarkers) {
 
     // Define streetmap and darkmap layers
     var streetmap = L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
@@ -66,6 +91,8 @@ function createMap(earthquakes) {
   
     var quakes = L.layerGroup(quakeMarkers);
 
+    console.log(quakes)
+
     // Create overlay object to hold our overlay layer
     var overlayMaps = {
       Earthquakes: earthquakes,
@@ -85,4 +112,5 @@ function createMap(earthquakes) {
     L.control.layers(baseMaps, overlayMaps, {
       collapsed: false
     }).addTo(myMap);
+
   }
